@@ -37,5 +37,10 @@ public class CuentaBancariaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
 
+    @PutMapping("/{numberAccount}")
+    public ResponseEntity<CuentaBancaria> updateBankAccount(@PathVariable("numberAccount") String numberAccount){
+        var account = cuentaService.getAccountByNumber(numberAccount);
+        return ResponseEntity.status(HttpStatus.OK).body(account);
+    }
 
 }
