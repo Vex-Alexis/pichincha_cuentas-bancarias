@@ -2,6 +2,7 @@ package com.pichincha.cuentasbancarias.service;
 
 import com.pichincha.cuentasbancarias.dto.CuentaBancariaDTO;
 import com.pichincha.cuentasbancarias.entity.CuentaBancaria;
+import com.pichincha.cuentasbancarias.exception.ExistingAccountException;
 import com.pichincha.cuentasbancarias.exception.NotFoundException;
 import com.pichincha.cuentasbancarias.repository.ICuentaBancariaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,39 +26,41 @@ public class CuentaBancariaService {
 
     public CuentaBancaria getAccountById(String id){
         return cuentaBancariaRepository.findById(id)
-                .orElseThrow(()-> new NotFoundException(id));
+                .orElseThrow(NotFoundException::new);
     }
 
     public CuentaBancaria getAccountByNumber(String numberAccount){
         return cuentaBancariaRepository.findByNumeroCuenta(numberAccount)
-                .orElseThrow(()-> new NotFoundException(numberAccount));
+                .orElseThrow(NotFoundException::new);
     }
 
-    public  CuentaBancaria saveBankAccount(CuentaBancariaDTO cuentaDTO){
+    public  void saveBankAccount(CuentaBancariaDTO cuentaDTO){
+
+        // Validaciones
+        if (existsByNumeroCuenta(cuentaDTO.getNumeroCuenta())){
+            throw new ExistingAccountException();
+        }
 
         CuentaBancaria cuentaBancaria = new CuentaBancaria();
 
-        cuentaBancaria.setId_Cuenta(cuentaDTO.getId_Cuenta());
         cuentaBancaria.setNumeroCuenta(cuentaDTO.getNumeroCuenta());
         cuentaBancaria.setTipoCuenta(cuentaDTO.getTipoCuenta());
         cuentaBancaria.setNombreTitular(cuentaDTO.getNombreTitular());
         cuentaBancaria.setSaldo(cuentaDTO.getSaldo());
 
-        //TODO: Transformar a DTO o hacer VOID y generar respuesta personalizada en Controller
-        return cuentaBancariaRepository.save(cuentaBancaria);
+        cuentaBancariaRepository.save(cuentaBancaria);
     }
 
-    public  CuentaBancaria updateBankAccount(CuentaBancariaDTO cuentaDTO){
+    public  CuentaBancaria updateBankAccount(String numberAccount, CuentaBancariaDTO cuentaDTO){
 
-        CuentaBancaria cuentaBancaria = cuentaBancariaRepository.findById(cuentaDTO.getId_Cuenta())
-                .orElseThrow(()-> new NotFoundException(cuentaDTO.getId_Cuenta()));
+        var existingAccount = getAccountByNumber(numberAccount);
 
-        cuentaBancaria.setNumeroCuenta(cuentaDTO.getNumeroCuenta());
-        cuentaBancaria.setTipoCuenta(cuentaDTO.getTipoCuenta());
-        cuentaBancaria.setNombreTitular(cuentaDTO.getNombreTitular());
-        cuentaBancaria.setSaldo(cuentaDTO.getSaldo());
+        // Datos permitidos para actualizar
+        existingAccount.setTipoCuenta(cuentaDTO.getTipoCuenta());
+        existingAccount.setNombreTitular(cuentaDTO.getNombreTitular());
+        existingAccount.setSaldo(cuentaDTO.getSaldo());
 
-        return cuentaBancariaRepository.save(cuentaBancaria);
+        return cuentaBancariaRepository.save(existingAccount);
     }
 
     public void deleteBankAccount(String id_bankAccount){
@@ -65,8 +68,13 @@ public class CuentaBancariaService {
     }
 
     public boolean existsByNumeroCuenta(String numeroCuenta){
-        return cuentaBancariaRepository.existsByNumeroCuenta(numeroCuenta);
+        if(cuentaBancariaRepository.existsByNumeroCuenta(numeroCuenta)){
+            return true;
+        }
+        return false;
     }
+
+
 
 
 }
